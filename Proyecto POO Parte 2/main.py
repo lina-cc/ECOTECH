@@ -104,13 +104,44 @@ def obtener_indicador_api(indicador, fecha=None):
         print(f"Error al consultar API: {e}")
         return None
 
+def obtener_rango_indicador(indicador, fecha_inicio, fecha_fin):
+    base_url = "https://mindicador.cl/api"
+    resultados = []
+    
+    start_year = fecha_inicio.year
+    end_year = fecha_fin.year
+    
+    for year in range(start_year, end_year + 1):
+        url = f"{base_url}/{indicador}/{year}"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            
+            if 'serie' in data:
+                for item in data['serie']:
+                    fecha_item_iso = item['fecha']
+                    fecha_item = datetime.datetime.strptime(fecha_item_iso[:10], '%Y-%m-%d').date()
+                    
+                    if fecha_inicio <= fecha_item <= fecha_fin:
+                        resultados.append({
+                            'fecha': fecha_item,
+                            'valor': item['valor']
+                        })
+        except Exception as e:
+            print(f"Error al consultar año {year}: {e}")
+            
+    # Ordenar por fecha
+    resultados.sort(key=lambda x: x['fecha'])
+    return resultados
+
 def menu_gestor_financiero(usuario_actual):
     historial_dao = HistorialDAO()
     
     while True:
         clear()
         print(f"=== GESTOR FINANCIERO (Usuario: {usuario_actual.username}) ===")
-        print("1. Consultar Indicadores (UF, Dólar, Euro, etc.)")
+        print("1. Consultar Indicadores")
         print("2. Ver Historial de Consultas")
         print("0. Volver")
         
@@ -120,32 +151,67 @@ def menu_gestor_financiero(usuario_actual):
         elif op == "1":
             print("\nIndicadores disponibles: uf, ivp, dolar, euro, ipc, utm")
             indicador = input("Ingrese indicador a consultar: ").lower()
-            fecha_str = input("Fecha (dd-mm-yyyy) [Enter para hoy]: ")
-            fecha = fecha_str if fecha_str else None
             
-            resultado = obtener_indicador_api(indicador, fecha)
+            print("\nTipo de consulta:")
+            print("1. Fecha específica")
+            print("2. Periodo (Rango de fechas)")
+            tipo = input("Seleccione opción: ")
             
-            if resultado:
-                print(f"\nValor {indicador.upper()}: {resultado['valor']}")
-                print(f"Fecha: {resultado['fecha']}")
+            if tipo == "1":
+                fecha_str = input("Fecha (dd-mm-yyyy) [Enter para hoy]: ")
+                fecha = fecha_str if fecha_str else None
                 
-                try:
-                    fecha_valor_iso = resultado['fecha']
-                    fecha_valor_dt = datetime.datetime.strptime(fecha_valor_iso[:10], '%Y-%m-%d')
-                    fecha_valor = fecha_valor_dt.strftime('%Y-%m-%d')
-                except:
-                    fecha_valor = datetime.date.today()
+                resultado = obtener_indicador_api(indicador, fecha)
+                
+                if resultado:
+                    print(f"\nValor {indicador.upper()}: {resultado['valor']}")
+                    print(f"Fecha: {resultado['fecha']}")
+                    
+                    try:
+                        fecha_valor_iso = resultado['fecha']
+                        fecha_valor_dt = datetime.datetime.strptime(fecha_valor_iso[:10], '%Y-%m-%d')
+                        fecha_valor = fecha_valor_dt.strftime('%Y-%m-%d')
+                    except:
+                        fecha_valor = datetime.date.today()
 
-                nuevo_historial = HistorialDTO(
-                    None, indicador, resultado['valor'], fecha_valor, None, "mindicador.cl", usuario_actual.id
-                )
-                if historial_dao.agregar_consulta(nuevo_historial):
-                    print("Consulta registrada en historial.")
+                    nuevo_historial = HistorialDTO(
+                        None, indicador, resultado['valor'], fecha_valor, None, "mindicador.cl", usuario_actual.id
+                    )
+                    if historial_dao.agregar_consulta(nuevo_historial):
+                        print("Consulta registrada en historial.")
+                    else:
+                        print("Error al registrar historial.")
                 else:
-                    print("Error al registrar historial.")
-            else:
-                print("No se pudo obtener el indicador.")
-            input("Enter...")
+                    print("No se pudo obtener el indicador.")
+            
+            elif tipo == "2":
+                try:
+                    f_inicio_str = input("Fecha Inicio (dd-mm-yyyy): ")
+                    f_fin_str = input("Fecha Fin (dd-mm-yyyy): ")
+                    
+                    f_inicio = datetime.datetime.strptime(f_inicio_str, '%d-%m-%Y').date()
+                    f_fin = datetime.datetime.strptime(f_fin_str, '%d-%m-%Y').date()
+                    
+                    if f_inicio > f_fin:
+                        print("Error: Fecha inicio mayor a fecha fin.")
+                    elif (f_fin.year - f_inicio.year) > 5:
+                         print("Error: El rango no puede exceder los 5 años.")
+                    else:
+                        print("\nConsultando...")
+                        resultados = obtener_rango_indicador(indicador, f_inicio, f_fin)
+                        
+                        if resultados:
+                            print(f"\nResultados para {indicador.upper()} ({f_inicio} al {f_fin}):")
+                            print(f"{'FECHA':<15} | {'VALOR':<10}")
+                            print("-" * 30)
+                            for r in resultados:
+                                print(f"{r['fecha']} | {r['valor']}")
+                        else:
+                            print("No se encontraron datos para el rango seleccionado.")
+                except ValueError:
+                    print("Formato de fecha incorrecto. Use dd-mm-yyyy.")
+            
+            input("\nEnter para continuar...")
             
         elif op == "2":
             if usuario_actual.rol == 'admin':
