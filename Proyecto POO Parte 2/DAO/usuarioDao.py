@@ -1,8 +1,9 @@
 from DAO.conexion import Conexion
+from DAO.baseDao import DaoBase
 from DTO.usuarioDto import UsuarioDTO
 import bcrypt
 
-class UsuarioDAO:
+class UsuarioDAO(DaoBase):
     def __init__(self):
         self.conexion = Conexion()
 
@@ -64,3 +65,19 @@ class UsuarioDAO:
                 r['id'], r['username'], r['password_hash'], r['rol'], r['empleado_id']
             ))
         return usuarios
+
+    def eliminar(self, id):
+        conn = self.conexion.conectar()
+        if not conn:
+            return False
+        cursor = conn.cursor()
+        sql = "DELETE FROM usuarios WHERE id = %s"
+        try:
+            cursor.execute(sql, (id,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error al eliminar usuario: {e}")
+            return False
+        finally:
+            self.conexion.desconectar()

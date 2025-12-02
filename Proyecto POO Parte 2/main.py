@@ -43,6 +43,7 @@ def menu_gestion_usuarios(usuario_actual):
         print("=== GESTIÓN DE USUARIOS ===")
         print("1. Listar Usuarios")
         print("2. Crear Usuario")
+        print("3. Eliminar Usuario")
         print("0. Volver")
         op = input("Opción: ")
         
@@ -64,6 +65,17 @@ def menu_gestion_usuarios(usuario_actual):
                 print("Usuario creado exitosamente.")
             else:
                 print("Error al crear usuario.")
+            input("Enter...")
+        elif op == "3":
+            print("\n--- Eliminar Usuario ---")
+            try:
+                id_usuario = int(input("ID del usuario a eliminar: "))
+                if dao.eliminar(id_usuario):
+                    print("Usuario eliminado exitosamente.")
+                else:
+                    print("Error al eliminar usuario.")
+            except ValueError:
+                print("ID inválido.")
             input("Enter...")
 
 def obtener_indicador_api(indicador, fecha=None):
