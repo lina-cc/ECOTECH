@@ -59,7 +59,9 @@ def menu_gestion_usuarios(usuario_actual):
             print("\n--- Nuevo Usuario ---")
             username = input("Username: ")
             password = stdiomask.getpass(prompt="Password: ", mask="*")
-            rol = input("Rol (admin/user): ")
+            rol = input("Rol (admin/user) [Default: user]: ")
+            if not rol:
+                rol = 'user'
             nuevo = UsuarioDTO(None, username, password, rol)
             if dao.crear(nuevo):
                 print("Usuario creado exitosamente.")
