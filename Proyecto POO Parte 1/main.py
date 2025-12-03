@@ -279,7 +279,7 @@ def menu_registro_tiempo(dao):
             print("Opción inválida.")
             input("Enter para continuar...")
 
-# -------------------- MENÚ PRINCIPAL --------------------
+# MENÚ PRINCIPAL
 def main():
     departamentoDAO = DepartamentoDAO()
     empleadoDAO = EmpleadoDAO()
