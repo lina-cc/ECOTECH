@@ -8,17 +8,22 @@ from DTO.historialDto import HistorialDTO
 from DTO.usuarioDto import UsuarioDTO
 
 def clear():
+    # funcion para limpiar la pantalla dependiendo del sistema operativo
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def login():
+    # instanciamos el dao de usuario
     dao = UsuarioDAO()
     intentos = 0
+    # permitimos hasta 3 intentos de login
     while intentos < 3:
         clear()
         print("=== LOGIN ECOTECH ===")
         username = input("Usuario: ")
+        # usamos stdiomask para ocultar la contraseña al escribir
         password = stdiomask.getpass(prompt="Contraseña: ", mask="*") # Ocultar password
         
+        # intentamos autenticar con el dao
         user_dto = dao.autenticar(username, password)
         if user_dto:
             print(f"Bienvenido {user_dto.username} ({user_dto.rol})")
@@ -81,22 +86,30 @@ def menu_gestion_usuarios(usuario_actual):
             input("Enter...")
 
 def obtener_indicador_api(indicador, fecha=None):
+    # url base de la api mindicador.cl
     base_url = "https://mindicador.cl/api"
+    # construimos la url con el indicador solicitado
     url = f"{base_url}/{indicador}"
+    # si se especifica una fecha, la agregamos a la url
     if fecha:
         url += f"/{fecha}"
 
     try:
+        # realizamos la petición get a la api
         response = requests.get(url)
+        # verificamos si hubo error en la respuesta http
         response.raise_for_status()
+        # convertimos la respuesta a json
         data = response.json()
 
         if fecha:
+            # si pedimos fecha especifica, buscamos en la serie
             if 'serie' in data and len(data['serie']) > 0:
                 valor = data['serie'][0]['valor']
                 fecha_valor = data['serie'][0]['fecha']
                 return {'valor': valor, 'fecha': fecha_valor}
         else:
+            # si no hay fecha, tomamos el valor más reciente
             if 'serie' in data and len(data['serie']) > 0:
                     valor = data['serie'][0]['valor']
                     fecha_valor = data['serie'][0]['fecha']
@@ -107,24 +120,30 @@ def obtener_indicador_api(indicador, fecha=None):
         return None
 
 def obtener_rango_indicador(indicador, fecha_inicio, fecha_fin):
+    # url base para consultas por año
     base_url = "https://mindicador.cl/api"
     resultados = []
     
     start_year = fecha_inicio.year
     end_year = fecha_fin.year
     
+    # iteramos por cada año en el rango solicitado
     for year in range(start_year, end_year + 1):
         url = f"{base_url}/{indicador}/{year}"
         try:
+            # consultamos la api para ese año
             response = requests.get(url)
             response.raise_for_status()
             data = response.json()
             
             if 'serie' in data:
+                # recorremos los valores devueltos
                 for item in data['serie']:
                     fecha_item_iso = item['fecha']
+                    # convertimos la fecha de string a objeto date
                     fecha_item = datetime.datetime.strptime(fecha_item_iso[:10], '%Y-%m-%d').date()
                     
+                    # filtramos solo las fechas que están dentro del rango exacto
                     if fecha_inicio <= fecha_item <= fecha_fin:
                         resultados.append({
                             'fecha': fecha_item,
@@ -133,7 +152,7 @@ def obtener_rango_indicador(indicador, fecha_inicio, fecha_fin):
         except Exception as e:
             print(f"Error al consultar año {year}: {e}")
             
-    # Ordenar por fecha
+    # ordenamos los resultados por fecha ascendente
     resultados.sort(key=lambda x: x['fecha'])
     return resultados
 
