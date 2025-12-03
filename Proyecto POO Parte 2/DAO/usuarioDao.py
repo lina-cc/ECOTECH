@@ -67,6 +67,9 @@ class UsuarioDAO(DaoBase):
         return usuarios
 
     def eliminar(self, id):
+        if id == 2:
+            print("Error: No se puede eliminar al usuario administrador principal.")
+            return False
         conn = self.conexion.conectar()
         if not conn:
             return False
