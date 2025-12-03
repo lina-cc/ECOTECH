@@ -4,8 +4,8 @@ from mysql.connector import Error
 class Conexion:
     def __init__(self):
         self.host = "localhost"
-        self.user = "admin"
-        self.password = "ecotech"
+        self.user = "ecotech_user"
+        self.password = "ecotech123"
         self.port = '3306'
         self.database = "base"
         self.conexion = None

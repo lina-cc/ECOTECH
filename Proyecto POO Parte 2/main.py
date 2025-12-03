@@ -225,8 +225,24 @@ def menu_gestor_financiero(usuario_actual):
                             print(f"\nResultados para {indicador.upper()} ({f_inicio} al {f_fin}):")
                             print(f"{'FECHA':<15} | {'VALOR':<10}")
                             print("-" * 30)
+                            
+                            count_guardados = 0
                             for r in resultados:
                                 print(f"{r['fecha']} | {r['valor']}")
+                                # Guardar en historial
+                                try:
+                                    # Convertir fecha a string o mantener objeto date segun lo que espere el DTO/BD
+                                    # El DTO espera fecha_valor. En obtener_indicador_api se hace strftime, aqui r['fecha'] es date.
+                                    # HistorialDAO usa %s, el driver de mysql suele aceptar objetos date.
+                                    nuevo_historial = HistorialDTO(
+                                        None, indicador, r['valor'], r['fecha'], None, "mindicador.cl", usuario_actual.id
+                                    )
+                                    if historial_dao.agregar_consulta(nuevo_historial):
+                                        count_guardados += 1
+                                except Exception as e:
+                                    print(f"Error guardando registro del {r['fecha']}: {e}")
+
+                            print(f"\nSe registraron {count_guardados} consultas en el historial.")
                         else:
                             print("No se encontraron datos para el rango seleccionado.")
                 except ValueError:
